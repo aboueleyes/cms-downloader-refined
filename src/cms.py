@@ -6,6 +6,8 @@ from requests_ntlm import HttpNtlmAuth
 import re
 from getpass import getpass
 import yaml
+from contextlib import suppress
+from sanitize_filename import sanitize
 
 
 YML_FILE = "config.yml"
@@ -15,8 +17,7 @@ DOWNLOADS_DIR = YML_CONFIG["downloads_dir"]
 
 
 class CMSAuthenticationError(Exception):
-    """
-    Exception for authentication errors.
+    """ The CMSAuthenticationError class is raised when the user's credentials are invalid.
     """
 
     def __init__(self, message: Optional[str] = None) -> None:
@@ -30,9 +31,7 @@ class CMSAuthenticationError(Exception):
 
 
 class Credentials:
-    """
-    Class for storing credentials.
-    """
+    """ Credentials  management. """
 
     def __init__(self):
         self.filename = ".env"
@@ -67,7 +66,7 @@ class Credentials:
         Get credentials from input.
         """
         self.username = input("GUC Username: ")
-        self.password = getpass("GUC Password: ")
+        self.password = getpass(prompt="GUC Password: ")
         try:
             Scraper(credentials=self).authenticate()
             return
@@ -88,22 +87,31 @@ class Course:
     Class for storing course information.
     """
 
-    def __init__(self, course_url: str):
+    def __init__(self, course_url: str, scraper: "Scraper") -> None:
         self.course_url = course_url
-        self.course_code, self.course_name = self.get_course_info()
         self.id = self.course_url.split("id")[1][1:].split("&")[0]
 
-    def get_course_info(self) -> Tuple[str, str]:
-        """
-        Get course information from course URL.
-        """
-        return None, None
-
     def __str__(self) -> str:
-        return f"{self.id}"
-        # return f"{self.course_code} - {self.course_name}"
+        return f"[{self.course_code}] {self.course_name}"
 
     __repr__ = __str__
+
+    @staticmethod
+    def get_course_regex() -> re.Pattern:
+        return re.compile(r"\n*[\(][\|]([^\|]*)[\|][\)]([^\(]*)[\(].*\n*")
+
+    def set_course_code(self, course_text: str) -> None:
+        self.course_code = course_text.split("-")[0].strip()
+        return None
+
+    def set_course_name(self, course_text: str) -> None:
+        self.course_name = course_text.split("-")[1].strip()
+        return None
+
+    def create_course_directory(self) -> None:
+        course_dir = os.path.join(DOWNLOADS_DIR, sanitize(self.__str__()))
+        os.makedirs(course_dir, exist_ok=True)
+        return None
 
 
 class Scraper:
@@ -134,18 +142,23 @@ class Scraper:
         """
         Run the scraper.
         """
-        print("Authenticating...")
         try:
             self.authenticate()
-            print(self.credentials)
         except CMSAuthenticationError as e:
-            print(e)
             self.credentials.remove_credentials()
             return
-        print("Authenticated.")
+
+        self.course_names = self.__get_course_names()
         self.courses = self.__get_available_courses()
-        print(f"Found {len(self.courses)} courses.")
+
+        for course, course_name in zip(self.courses, self.course_names):
+            course.set_course_code(course_name)
+            course.set_course_name(course_name)
+
         print(self.courses)
+
+        for course in self.courses:
+            course.create_course_directory()
 
     def authenticate(self) -> None:
         """
@@ -167,4 +180,23 @@ class Scraper:
             for link in courses_links
             if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
         ]
-        return [Course(link) for link in courses_links]
+        return [Course(link, self) for link in courses_links]
+
+    def __get_course_names(self) -> List[str]:
+        "get course names"
+        courses_table = list(
+            self.home_soup.find(
+                "table",
+                {
+                    "id": "ContentPlaceHolderright_ContentPlaceHoldercontent_GridViewcourses"
+                }
+            )
+        )
+        return [
+            re.sub(
+                Course.get_course_regex(),
+                rf"\1-\2",
+                courses_table[i].text.strip(),
+            ).strip()
+            for i in range(2, len(courses_table) - 1)
+        ]
