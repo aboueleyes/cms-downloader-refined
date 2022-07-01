@@ -90,6 +90,7 @@ class Course:
     def __init__(self, course_url: str, scraper: "Scraper") -> None:
         self.course_url = course_url
         self.id = self.course_url.split("id")[1][1:].split("&")[0]
+        self.files = []
 
     def __str__(self) -> str:
         return f"[{self.course_code}] {self.course_name}"
@@ -102,16 +103,55 @@ class Course:
 
     def set_course_code(self, course_text: str) -> None:
         self.course_code = course_text.split("-")[0].strip()
-        return None
 
     def set_course_name(self, course_text: str) -> None:
         self.course_name = course_text.split("-")[1].strip()
-        return None
 
     def create_course_directory(self) -> None:
         course_dir = os.path.join(DOWNLOADS_DIR, sanitize(self.__str__()))
         os.makedirs(course_dir, exist_ok=True)
-        return None
+
+    def set_course_soup(self, course_soup: BeautifulSoup) -> None:
+        self.course_soup = course_soup
+
+    def get_course_files(self) -> List[str]:
+        """
+        Get the list of files in the course.
+        """
+        files_body = self.course_soup.find_all(class_="card-body")
+
+        for item in files_body:
+            self.files.append((CMSFile(soup=item)))
+
+
+class CMSFile:
+    """ a cms file object"""
+
+    def __init__(self, soup: BeautifulSoup) -> None:
+        self.soup = soup
+        self.url = HOST + self.soup.find("a")["href"]
+        self.week = self.soup.parent.parent.parent.parent.find(
+            "h2").text.strip()
+        self.description = re.sub(self.get_file_regex(
+        ), '\\1', self.soup.find('div').text).strip()
+        self.name = re.sub(self.get_file_regex(), '\\1',
+                           self.soup.find('strong').text).strip()
+
+    @staticmethod
+    def get_file_regex() -> re.Pattern:
+        return re.compile(r'[0-9]* - (.*)')
+
+    def __str__(self) -> str:
+        return f"{self.name}"
+
+    __repr__ = __str__
+
+    @property
+    def path(self) -> str:
+        self.week = sanitize(self.week)
+        self.extension = self.url.rsplit(".", 1)[1]
+        self.name = sanitize(self.name)
+        return os.path.join(DOWNLOADS_DIR, self.week, f"{self.name}.{self.extension}")
 
 
 class Scraper:
@@ -155,10 +195,17 @@ class Scraper:
             course.set_course_code(course_name)
             course.set_course_name(course_name)
 
-        print(self.courses)
-
         for course in self.courses:
             course.create_course_directory()
+
+        self.get_courses_soup()
+
+        for course in self.courses:
+            course.get_course_files()
+
+        for course in self.courses:
+            for file in course.files:
+                print(f"Downloading {file.path}")
 
     def authenticate(self) -> None:
         """
@@ -195,8 +242,18 @@ class Scraper:
         return [
             re.sub(
                 Course.get_course_regex(),
-                rf"\1-\2",
+                r"\1-\2",
                 courses_table[i].text.strip(),
             ).strip()
             for i in range(2, len(courses_table) - 1)
         ]
+
+    def get_courses_soup(self) -> None:
+        """
+        Get courses page.
+        """
+        for course in self.courses:
+            course.set_course_soup(BeautifulSoup(
+                self.session.get(course.course_url, **
+                                 self.get_args).text, self.html_parser
+            ))
