@@ -6,14 +6,18 @@ from requests_ntlm import HttpNtlmAuth
 import re
 from getpass import getpass
 import yaml
+import random
+from datetime import datetime
 from contextlib import suppress
 from sanitize_filename import sanitize
-
+from tqdm import tqdm
 
 YML_FILE = "config.yml"
 YML_CONFIG = yaml.safe_load(open(YML_FILE))
 HOST = YML_CONFIG["host"]
 DOWNLOADS_DIR = YML_CONFIG["downloads_dir"]
+COLORS = ["#ff0000", "#00ff00", "#0000ff", "#ffff00",
+          "#00ffff", "#ff00ff", "#ffffff", "#000000"]
 
 
 class CMSAuthenticationError(Exception):
@@ -108,34 +112,41 @@ class Course:
         self.course_name = course_text.split("-")[1].strip()
 
     def create_course_directory(self) -> None:
-        course_dir = os.path.join(DOWNLOADS_DIR, sanitize(self.__str__()))
-        os.makedirs(course_dir, exist_ok=True)
+        for file in self.files:
+            os.makedirs(os.path.join(file.dir_path), exist_ok=True)
 
     def set_course_soup(self, course_soup: BeautifulSoup) -> None:
         self.course_soup = course_soup
 
-    def get_course_files(self) -> List[str]:
+    def get_course_files(self, course_path) -> List[str]:
         """
         Get the list of files in the course.
         """
         files_body = self.course_soup.find_all(class_="card-body")
 
         for item in files_body:
-            self.files.append((CMSFile(soup=item)))
+            self.files.append((CMSFile(soup=item, course_path=course_path)))
 
 
 class CMSFile:
     """ a cms file object"""
 
-    def __init__(self, soup: BeautifulSoup) -> None:
+    def __init__(self, soup: BeautifulSoup, course_path) -> None:
         self.soup = soup
         self.url = HOST + self.soup.find("a")["href"]
         self.week = self.soup.parent.parent.parent.parent.find(
             "h2").text.strip()
+        self.week = re.sub(r"Week: (.*)", "\\1", self.week)
+        self.week = datetime.strptime(self.week, '%Y-%m-%d').strftime('W %m-%d')
         self.description = re.sub(self.get_file_regex(
         ), '\\1', self.soup.find('div').text).strip()
         self.name = re.sub(self.get_file_regex(), '\\1',
                            self.soup.find('strong').text).strip()
+        self.name = sanitize(self.name)
+        self.extension = self.url.rsplit(".", 1)[1]
+        self.dir_path = os.path.join(course_path, self.week)
+        self.path = os.path.join(
+            self.dir_path, f"{self.name}.{self.extension}")
 
     @staticmethod
     def get_file_regex() -> re.Pattern:
@@ -146,12 +157,9 @@ class CMSFile:
 
     __repr__ = __str__
 
-    @property
-    def path(self) -> str:
-        self.week = sanitize(self.week)
-        self.extension = self.url.rsplit(".", 1)[1]
-        self.name = sanitize(self.name)
-        return os.path.join(DOWNLOADS_DIR, self.week, f"{self.name}.{self.extension}")
+
+def exists(self) -> bool:
+    return os.path.exists(self.path)
 
 
 class Scraper:
@@ -195,17 +203,17 @@ class Scraper:
             course.set_course_code(course_name)
             course.set_course_name(course_name)
 
-        for course in self.courses:
-            course.create_course_directory()
-
         self.get_courses_soup()
 
         for course in self.courses:
-            course.get_course_files()
+            course.get_course_files(os.path.join(
+                DOWNLOADS_DIR, course.__str__()))
 
         for course in self.courses:
-            for file in course.files:
-                print(f"Downloading {file.path}")
+            course.create_course_directory()
+
+        first_file = self.courses[0].files[0]
+        self.__download_file(first_file)
 
     def authenticate(self) -> None:
         """
@@ -257,3 +265,25 @@ class Scraper:
                 self.session.get(course.course_url, **
                                  self.get_args).text, self.html_parser
             ))
+
+    def __download_file(self, file: CMSFile) -> None:
+        response = self.session.get(
+            file.url, **self.get_args, stream=True, allow_redirects=True)
+        if response.status_code != 200:
+            raise CMSAuthenticationError("Authentication failed.")
+
+        total_size = int(response.headers.get("Content-Length"))
+
+        with open(file.path, "wb") as f:
+            with tqdm(
+                total=total_size,
+                unit='B',
+                unit_scale=True,
+                desc=file.path,
+                initial=0,
+                dynamic_ncols=True,
+                colour=random.choice(COLORS),
+            ) as t:
+                for chunk in response.iter_content(chunk_size=1024):
+                    f.write(chunk)
+                    t.update(len(chunk))
