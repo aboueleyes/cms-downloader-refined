@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+import json
 from typing import Tuple, List, Type, Optional, Dict
 import os
 from requests_ntlm import HttpNtlmAuth
@@ -196,8 +197,34 @@ class Scraper:
             self.credentials.remove_credentials()
             return
 
-        self.course_names = self.__get_course_names()
-        self.courses = self.__get_available_courses()
+        try:
+            file = open("courses.json")
+            courses_data = json.load(file)
+            courses_names = []
+            for course in courses_data:
+                courses_names.append(course)
+            self.course_names = courses_names
+
+            links = []
+            for link in courses_data.values():
+                links.append(link)
+            print(links)
+            self.courses = self.__get_available_courses()
+
+        except FileNotFoundError:
+            self.course_names = self.__get_course_names()
+            self.courses = self.__get_available_courses()
+            courses_links = self.__get_courses_links()
+
+            courses_data = {}
+            for course_name in self.course_names:
+                for link in courses_links:
+                    courses_data[course_name] = link
+                    courses_links.remove(link)
+                    break
+
+            with open("courses.json", "w") as outfile:
+                json.dump(courses_data, outfile)
 
         for course, course_name in zip(self.courses, self.course_names):
             course.set_course_code(course_name)
@@ -236,6 +263,31 @@ class Scraper:
             if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
         ]
         return [Course(link, self) for link in courses_links]
+    
+    def __get_available_courses2(self,courses_links) -> Type[List[Course]]:
+        """
+        Get list of courses.
+        """
+        courses_links = [
+            HOST + link
+            for link in courses_links
+            if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
+        ]
+        return [Course(link, self) for link in courses_links]
+
+    def __get_courses_links(self) -> List[str]:
+        """
+        Get list of courses links.
+        """
+        courses_links = [
+            link.get("href") for link in self.home_soup.find_all("a") if link.get("href")
+        ]
+        courses_links = [
+            HOST + link
+            for link in courses_links
+            if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
+        ]
+        return courses_links
 
     def __get_course_names(self) -> List[str]:
         "get course names"
