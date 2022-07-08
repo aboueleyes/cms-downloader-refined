@@ -208,7 +208,6 @@ class Scraper:
             links = []
             for link in courses_data.values():
                 links.append(link)
-            print(links)
             self.courses = self.__get_available_courses()
 
         except FileNotFoundError:
