@@ -1,5 +1,5 @@
 host:
-  "https://cms.guc.edu.eg"
+    "https://cms.guc.edu.eg/apps/student/ViewAllCourseStn"
 
 downloads_dir:
   "Downloads"

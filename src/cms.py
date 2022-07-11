@@ -211,6 +211,7 @@ class Scraper:
             self.courses = self.__get_available_courses()
 
         except FileNotFoundError:
+            print("here")
             self.course_names = self.__get_course_names()
             self.courses = self.__get_available_courses()
             courses_links = self.__get_courses_links()
@@ -238,6 +239,7 @@ class Scraper:
         for course in self.courses:
             course.create_course_directory()
 
+        print(self.courses)
         first_file = self.courses[0].files[0]
         self.__download_file(first_file)
 
@@ -294,7 +296,7 @@ class Scraper:
             self.home_soup.find(
                 "table",
                 {
-                    "id": "ContentPlaceHolderright_ContentPlaceHoldercontent_GridViewcourses"
+                    "id": "ContentPlaceHolderright_ContentPlaceHoldercontent_r1_GridView1_0"
                 }
             )
         )
