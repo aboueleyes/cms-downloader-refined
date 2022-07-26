@@ -15,7 +15,8 @@ from tqdm import tqdm
 
 YML_FILE = "config.yml"
 YML_CONFIG = yaml.safe_load(open(YML_FILE))
-HOST = YML_CONFIG["host"]
+HOST = YML_CONFIG["host"]+"apps/student/ViewAllCourseStn"
+print(HOST)
 DOWNLOADS_DIR = YML_CONFIG["downloads_dir"]
 COLORS = ["#ff0000", "#00ff00", "#0000ff", "#ffff00",
           "#00ffff", "#ff00ff", "#ffffff", "#000000"]
@@ -211,11 +212,14 @@ class Scraper:
             self.courses = self.__get_available_courses()
 
         except FileNotFoundError:
-            print("here")
+            print("file not found")
             self.course_names = self.__get_course_names()
             self.courses = self.__get_available_courses()
             courses_links = self.__get_courses_links()
 
+            print(self.course_names)
+            print(self.courses)
+            #print(courses_links)
             courses_data = {}
             for course_name in self.course_names:
                 for link in courses_links:
@@ -255,15 +259,23 @@ class Scraper:
         """
         Get list of courses.
         """
-        courses_links = [
-            link.get("href") for link in self.home_soup.find_all("a") if link.get("href")
-        ]
-        courses_links = [
-            HOST + link
-            for link in courses_links
-            if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
-        ]
-        return [Course(link, self) for link in courses_links]
+        search_area = self.home_soup.find("table",{"id": "ContentPlaceHolderright_ContentPlaceHoldercontent_r1_GridView1_0"})
+        courses_links = [ str(name)[4:len(str(name))-5] for name in search_area.find_all("td") if (len(name)==1 and str(name)[4]=='(')]
+        print(len(courses_links))
+        #print(str(courses_links[0])[4]=='(')
+        #print(courses_links[0].get("innerHTML"))  
+        #print(courses_links[0].get("childElementCount"))
+        print(courses_links)
+        #courses_links = [
+            #link.get("href") for link in self.home_soup.find_all("a") if link.get("href")
+        #]
+        #courses_links = [
+            #HOST + link
+            #for link in courses_links
+            #if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
+        #]
+        #return [Course(link, self) for link in courses_links]
+        return courses_links
     
     def __get_available_courses2(self,courses_links) -> Type[List[Course]]:
         """
