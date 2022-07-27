@@ -93,7 +93,7 @@ class Course:
     Class for storing course information.
     """
 
-    def __init__(self, course_url: str, scraper: "Scraper") -> None:
+    def __init__(self, course_url: str, fer: "Scraper") -> None:
         self.course_url = course_url
         self.id = self.course_url.split("id")[1][1:].split("&")[0]
         self.files = []
@@ -215,7 +215,7 @@ class Scraper:
             print("file not found")
             self.course_names = self.__get_course_names()
             courses_links = self.__get_courses_links()
-            self.courses = self.__get_available_courses()
+            self.courses = [Course(courses_links[i], self.course_names[i]) for i in range(len(courses_links))]
 
             print(self.course_names)
             print(self.courses)
@@ -255,23 +255,11 @@ class Scraper:
         if response.status_code != 200:
             raise CMSAuthenticationError("Authentication failed.")
 
-    def __get_available_courses(self) -> Type[List[Course]]:
-        """
-        Get list of courses.
-        """
-        #print(str(courses_links[0])[4]=='(')
-        #print(courses_links[0].get("innerHTML"))  
-        #print(courses_links[0].get("childElementCount"))
-        #courses_links = [
-            #link.get("href") for link in self.home_soup.find_all("a") if link.get("href")
-        #]
-        #courses_links = [
-            #HOST + link
-            #for link in courses_links
-            #if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
-        #]
-        #return [Course(link, self) for link in courses_links]
-        return courses_links
+    #def __get_available_courses(self) -> Type[List[Course]]:
+        #"""
+        #Get list of courses.
+        #"""
+        #return [Course(courses_links[i], self.courses_names[i]) for i in range(len(courses_links))]
     
     def __get_courses_links(self) -> List[str]:
         """
@@ -290,7 +278,7 @@ class Scraper:
         for code in courses_codes:
             courses_links.append("https://cms.guc.edu.eg/apps/student/CourseViewStn.aspx?id="+code+"&sid="+ season)
         
-        print(courses_links)         
+        print(courses_links)
         return courses_links
 
     def __get_course_names(self) -> List[str]:
