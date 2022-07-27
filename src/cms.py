@@ -111,7 +111,7 @@ class Course:
         self.course_code = course_text.split("-")[0].strip()
 
     def set_course_name(self, course_text: str) -> None:
-        self.course_name = course_text.split("-")[1].strip()
+        self.course_name = course_text.split(" ")[0].strip()
 
     def create_course_directory(self) -> None:
         for file in self.files:
@@ -209,17 +209,15 @@ class Scraper:
             links = []
             for link in courses_data.values():
                 links.append(link)
-            self.courses = self.__get_available_courses()
+            self.courses = [Course(links[i], self) for i in range(len(links))]
 
         except FileNotFoundError:
             print("file not found")
             self.course_names = self.__get_course_names()
             courses_links = self.__get_courses_links()
-            self.courses = [Course(courses_links[i], self.course_names[i]) for i in range(len(courses_links))]
+            self.courses = [Course(courses_links[i], self) for i in range(len(courses_links))]
 
             print(self.course_names)
-            print(self.courses)
-            #print(courses_links)
             courses_data = {}
             for course_name in self.course_names:
                 for link in courses_links:
@@ -265,7 +263,6 @@ class Scraper:
         """
         Get list of courses links.
         """
-        print("here")
         courses_codes=[]
         for str in self.course_names:
             course_code=re.findall(r'\([0-9]*\)',str)[0]
@@ -278,7 +275,6 @@ class Scraper:
         for code in courses_codes:
             courses_links.append("https://cms.guc.edu.eg/apps/student/CourseViewStn.aspx?id="+code+"&sid="+ season)
         
-        print(courses_links)
         return courses_links
 
     def __get_course_names(self) -> List[str]:
