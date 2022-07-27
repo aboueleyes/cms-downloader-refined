@@ -214,8 +214,8 @@ class Scraper:
         except FileNotFoundError:
             print("file not found")
             self.course_names = self.__get_course_names()
-            self.courses = self.__get_available_courses()
             courses_links = self.__get_courses_links()
+            self.courses = self.__get_available_courses()
 
             print(self.course_names)
             print(self.courses)
@@ -277,14 +277,20 @@ class Scraper:
         """
         Get list of courses links.
         """
-        courses_links = [
-            link.get("href") for link in self.home_soup.find_all("a") if link.get("href")
-        ]
-        courses_links = [
-            HOST + link
-            for link in courses_links
-            if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
-        ]
+        print("here")
+        courses_codes=[]
+        for str in self.course_names:
+            course_code=re.findall(r'\([0-9]*\)',str)[0]
+            course_code=course_code[1:len(course_code)-1]
+            courses_codes.append(course_code)
+        print(courses_codes)
+        season=self.home_soup.find("div",{"class": "menu-header-title"}).get_text()[9:11]
+        print(season)
+        courses_links = []
+        for code in courses_codes:
+            courses_links.append("https://cms.guc.edu.eg/apps/student/CourseViewStn.aspx?id="+code+"&sid="+ season)
+        
+        print(courses_links)         
         return courses_links
 
     def __get_course_names(self) -> List[str]:
@@ -307,8 +313,9 @@ class Scraper:
         #]
         search_area = self.home_soup.find("table",{"id": "ContentPlaceHolderright_ContentPlaceHoldercontent_r1_GridView1_0"})
         courses_names = [ str(name)[4:len(str(name))-5] for name in search_area.find_all("td") if (len(name)==1 and str(name)[4]=='(')]
-        print(len(courses_names))
-        print(courses_names)
+        #print(len(courses_names))
+        #print(courses_names)
+        return courses_names
 
     def get_courses_soup(self) -> None:
         """
