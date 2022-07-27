@@ -259,13 +259,9 @@ class Scraper:
         """
         Get list of courses.
         """
-        search_area = self.home_soup.find("table",{"id": "ContentPlaceHolderright_ContentPlaceHoldercontent_r1_GridView1_0"})
-        courses_links = [ str(name)[4:len(str(name))-5] for name in search_area.find_all("td") if (len(name)==1 and str(name)[4]=='(')]
-        print(len(courses_links))
         #print(str(courses_links[0])[4]=='(')
         #print(courses_links[0].get("innerHTML"))  
         #print(courses_links[0].get("childElementCount"))
-        print(courses_links)
         #courses_links = [
             #link.get("href") for link in self.home_soup.find_all("a") if link.get("href")
         #]
@@ -277,17 +273,6 @@ class Scraper:
         #return [Course(link, self) for link in courses_links]
         return courses_links
     
-    def __get_available_courses2(self,courses_links) -> Type[List[Course]]:
-        """
-        Get list of courses.
-        """
-        courses_links = [
-            HOST + link
-            for link in courses_links
-            if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
-        ]
-        return [Course(link, self) for link in courses_links]
-
     def __get_courses_links(self) -> List[str]:
         """
         Get list of courses links.
@@ -304,22 +289,26 @@ class Scraper:
 
     def __get_course_names(self) -> List[str]:
         "get course names"
-        courses_table = list(
-            self.home_soup.find(
-                "table",
-                {
-                    "id": "ContentPlaceHolderright_ContentPlaceHoldercontent_r1_GridView1_0"
-                }
-            )
-        )
-        return [
-            re.sub(
-                Course.get_course_regex(),
-                r"\1-\2",
-                courses_table[i].text.strip(),
-            ).strip()
-            for i in range(2, len(courses_table) - 1)
-        ]
+        #courses_table = list(
+            #self.home_soup.find(
+                #"table",
+                #{
+                    #"id": "ContentPlaceHolderright_ContentPlaceHoldercontent_r1_GridView1_0"
+                #}
+            #)
+        #)
+        #return [
+            #re.sub(
+                #Course.get_course_regex(),
+                #r"\1-\2",
+                #courses_table[i].text.strip(),
+            #).strip()
+            #for i in range(2, len(courses_table) - 1)
+        #]
+        search_area = self.home_soup.find("table",{"id": "ContentPlaceHolderright_ContentPlaceHoldercontent_r1_GridView1_0"})
+        courses_names = [ str(name)[4:len(str(name))-5] for name in search_area.find_all("td") if (len(name)==1 and str(name)[4]=='(')]
+        print(len(courses_names))
+        print(courses_names)
 
     def get_courses_soup(self) -> None:
         """
