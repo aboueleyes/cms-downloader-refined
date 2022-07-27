@@ -108,10 +108,14 @@ class Course:
         return re.compile(r"\n*[\(][\|]([^\|]*)[\|][\)]([^\(]*)[\(].*\n*")
 
     def set_course_code(self, course_text: str) -> None:
-        self.course_code = course_text.split("-")[0].strip()
+        self.course_code = course_text.split(" ")[0].strip()
 
     def set_course_name(self, course_text: str) -> None:
-        self.course_name = course_text.split(" ")[0].strip()
+        arr=course_text.split(" ")
+        str=""
+        for i in range(1,len(arr)-1):
+            str+=arr[i]+" "
+        self.course_name = str[0:len(str)-1]
 
     def create_course_directory(self) -> None:
         for file in self.files:
