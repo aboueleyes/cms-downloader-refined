@@ -56,6 +56,8 @@ class Course:
         files_body = self.course_soup.find_all(class_="card-body")
 
         for item in files_body:
+            if item.find('strong') == None:
+                continue
             self.files.append((CMSFile(soup=item, course_path=course_path)))
 
 
