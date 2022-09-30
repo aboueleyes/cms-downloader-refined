@@ -1,4 +1,4 @@
-from cms import *
+from scraper import *
 import urllib3
 
 
