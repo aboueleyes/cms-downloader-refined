@@ -1,21 +1,25 @@
-import requests
-from bs4 import BeautifulSoup
-from typing import Tuple, List, Type, Optional, Dict
 import os
-from requests_ntlm import HttpNtlmAuth
-import re
-from getpass import getpass
-import yaml
 import random
-from datetime import datetime
+import re
+import json
 from contextlib import suppress
+from datetime import datetime
+from getpass import getpass
+from typing import Dict, List, Optional
+
+import requests
+import yaml
+from bs4 import BeautifulSoup
+from requests_ntlm import HttpNtlmAuth
 from sanitize_filename import sanitize
 from tqdm import tqdm
 
 YML_FILE = "config.yml"
 YML_CONFIG = yaml.safe_load(open(YML_FILE))
+
 HOST = YML_CONFIG["host"]
 DOWNLOADS_DIR = YML_CONFIG["downloads_dir"]
+
 COLORS = ["#ff0000", "#00ff00", "#0000ff", "#ffff00",
           "#00ffff", "#ff00ff", "#ffffff", "#000000"]
 
@@ -91,8 +95,9 @@ class Course:
     Class for storing course information.
     """
 
-    def __init__(self, course_url: str, scraper: "Scraper") -> None:
+    def __init__(self, course_url: str) -> None:
         self.course_url = course_url
+        print(f"Getting course information from {self.course_url} ...")
         self.id = self.course_url.split("id")[1][1:].split("&")[0]
         self.files = []
 
@@ -118,7 +123,7 @@ class Course:
     def set_course_soup(self, course_soup: BeautifulSoup) -> None:
         self.course_soup = course_soup
 
-    def get_course_files(self, course_path) -> List[str]:
+    def get_course_files(self, course_path) -> None:
         """
         Get the list of files in the course.
         """
@@ -133,16 +138,22 @@ class CMSFile:
 
     def __init__(self, soup: BeautifulSoup, course_path) -> None:
         self.soup = soup
+
         self.url = HOST + self.soup.find("a")["href"]
+
         self.week = self.soup.parent.parent.parent.parent.find(
             "h2").text.strip()
         self.week = re.sub(r"Week: (.*)", "\\1", self.week)
-        self.week = datetime.strptime(self.week, '%Y-%m-%d').strftime('W %m-%d')
+        self.week = datetime.strptime(
+            self.week, '%Y-%m-%d').strftime('W %m-%d')
+
         self.description = re.sub(self.get_file_regex(
         ), '\\1', self.soup.find('div').text).strip()
+
         self.name = re.sub(self.get_file_regex(), '\\1',
                            self.soup.find('strong').text).strip()
         self.name = sanitize(self.name)
+
         self.extension = self.url.rsplit(".", 1)[1]
         self.dir_path = os.path.join(course_path, self.week)
         self.path = os.path.join(
@@ -190,30 +201,57 @@ class Scraper:
         """
         Run the scraper.
         """
+
+        # authenticate
         try:
             self.authenticate()
         except CMSAuthenticationError as e:
             self.credentials.remove_credentials()
-            return
+            return self.run()
 
-        self.course_names = self.__get_course_names()
-        self.courses = self.__get_available_courses()
+        self._scrap_courses()
 
-        for course, course_name in zip(self.courses, self.course_names):
-            course.set_course_code(course_name)
-            course.set_course_name(course_name)
-
-        self.get_courses_soup()
-
-        for course in self.courses:
-            course.get_course_files(os.path.join(
-                DOWNLOADS_DIR, course.__str__()))
+        self._get_all_courses_files()
 
         for course in self.courses:
             course.create_course_directory()
 
-        first_file = self.courses[0].files[0]
-        self.__download_file(first_file)
+    def _scrap_courses(self) -> None:
+        # cache the courses name and links
+        if os.path.exists(".courses.json"):
+            with open(".courses.json", "r") as f:
+                courses_data = json.load(f)
+                print("Getting courses from cache ...")
+                print(courses_data)
+                for course_name in courses_data:
+                    print(course_name)
+                    link = courses_data[course_name]
+                    course = Course(course_url=link)
+                    course.set_course_name(course_name)
+                    course.set_course_code(course_name)
+                    self.courses.append(course)
+        else:
+            self.course_names = self.__get_course_names()
+            self.courses = self.__get_available_courses()
+            self._populate_courses_data()
+            with open(".courses.json", "w") as f:
+                data = {
+                    course.course_text: course.course_url for course in self.courses}
+                json.dump(data, f, indent=4)
+
+    def _get_all_courses_files(self):
+        for course in self.courses:
+            course.get_course_files(os.path.join(
+                DOWNLOADS_DIR, course.__str__()))
+
+    def _populate_courses_data(self):
+        # populate courses with names
+        for course, course_name in zip(self.courses, self.course_names):
+            course.set_course_code(course_name)
+            course.set_course_name(course_name)
+
+        # populate courses soups
+        self.get_courses_soup()
 
     def authenticate(self) -> None:
         """
@@ -223,19 +261,19 @@ class Scraper:
         if response.status_code != 200:
             raise CMSAuthenticationError("Authentication failed.")
 
-    def __get_available_courses(self) -> Type[List[Course]]:
+    def __get_available_courses(self) -> List[Course]:
         """
         Get list of courses.
         """
-        courses_links = [
+        self.courses_links = [
             link.get("href") for link in self.home_soup.find_all("a") if link.get("href")
         ]
-        courses_links = [
+        self.courses_links = [
             HOST + link
-            for link in courses_links
+            for link in self.courses_links
             if re.match(r"\/apps\/student\/CourseViewStn\?id(.*)", link)
         ]
-        return [Course(link, self) for link in courses_links]
+        return [Course(link) for link in self.courses_links]
 
     def __get_course_names(self) -> List[str]:
         "get course names"
