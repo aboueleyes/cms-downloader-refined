@@ -56,6 +56,9 @@ class Course:
         files_body = self.course_soup.find_all(class_="card-body")
 
         for item in files_body:
+            # check if the card is not a course content, useful for `Filter weeks` card
+            if item.find('strong') is None:
+                continue
             self.files.append((CMSFile(soup=item, course_path=course_path)))
 
 
