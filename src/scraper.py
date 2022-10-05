@@ -201,4 +201,4 @@ class Scraper:
         """
         Get all files.
         """
-        return [file for course in self.courses for file in course.files]
+        return [file for course in self.courses for file in course.files if not os.path.exists(file.path)]
