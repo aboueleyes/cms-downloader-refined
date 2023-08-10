@@ -4,6 +4,9 @@ from datetime import datetime
 
 from bs4 import BeautifulSoup
 from sanitize_filename import sanitize
+from pptx import Presentation
+from PyPDF2 import PdfFileWriter, PdfFileReader
+from io import BytesIO
 
 
 class Course:
@@ -65,6 +68,17 @@ class Course:
 class CMSFile:
     """a cms file object"""
 
+    def convert_pptx_to_pdf(self, pptx_path):
+        prs = Presentation(pptx_path)
+        pdf_writer = PdfFileWriter()
+
+        for slide_num, slide in enumerate(prs.slides):
+            export_slide(slide, slide_num, pdf_writer)
+
+        pdf_path = pptx_path.replace('.pptx', '.pdf')
+        with open(pdf_path, 'wb') as fh:
+            pdf_writer.write(fh)
+
     def __init__(self, soup: BeautifulSoup, course_path) -> None:
         from scraper import HOST
 
@@ -84,6 +98,8 @@ class CMSFile:
         self.extension = self.url.rsplit(".", 1)[1]
         self.dir_path = os.path.join(course_path, self.week)
         self.path = os.path.join(self.dir_path, f"{self.name}.{self.extension}")
+        if self.extension == 'pptx':
+            self.convert_pptx_to_pdf(self.path)
 
     @staticmethod
     def get_file_regex() -> re.Pattern:
