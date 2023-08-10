@@ -15,6 +15,7 @@ class Course:
         self.course_url = course_url
         self.id = self.course_url.split("id")[1][1:].split("&")[0]
         self.files = []
+        self.convert_pptx_to_pdf = True
 
     def __str__(self) -> str:
         return f"[{self.course_code}] {self.course_name}"
@@ -81,24 +82,24 @@ class CMSFile:
         self.name = re.sub(self.get_file_regex(), "\\1", self.soup.find("strong").text).strip()
         self.name = sanitize(self.name)
 
-    self.extension = self.url.rsplit(".", 1)[1]
-    if self.extension == "pptx":
-        try:
-            from pptx import Presentation
-            from pptx.util import Inches
-    
-            # Read the pptx file
-            presentation = Presentation(self.path)
-    
-            # Save as pdf
-            pdf_path = self.path.replace(".pptx", ".pdf")
-            presentation.export(pdf_path)
-    
-            # Update attributes
-            self.extension = "pdf"
-            self.path = pdf_path
-        except Exception as e:
-            print(f"Error converting pptx to pdf: {e}")
+        self.extension = self.url.rsplit(".", 1)[1]
+        if self.extension == "pptx" and self.convert_pptx_to_pdf:
+            try:
+                from pptx import Presentation
+                from pptx.util import Inches
+
+                # Read the pptx file
+                presentation = Presentation(self.path)
+
+                # Save as pdf
+                pdf_path = self.path.replace(".pptx", ".pdf")
+                presentation.export(pdf_path)
+
+                # Update attributes
+                self.extension = "pdf"
+                self.path = pdf_path
+            except Exception as e:
+                print(f"Error converting pptx to pdf: {e}")
         self.dir_path = os.path.join(course_path, self.week)
         self.path = os.path.join(self.dir_path, f"{self.name}.{self.extension}")
 
@@ -108,3 +109,5 @@ class CMSFile:
 
     def __str__(self) -> str:
         return f"{self.name}"
+    
+    __repr__ = __str__
