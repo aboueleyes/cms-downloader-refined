@@ -1,2 +1,9 @@
 bs4
-san
+# Module "san" is used in the following places:
+# - <path_1>
+# - <path_2>
+# - <path_3>
+# Add the rest of the modules here:
+module_1
+module_2
+module_3
