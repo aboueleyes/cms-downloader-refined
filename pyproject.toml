@@ -3,4 +3,4 @@ line-length = 120
 include = '\.pyi?$'
 
 [build-system]
-requires = ["python-pptx", "PyPDF2"]
+requires = []
