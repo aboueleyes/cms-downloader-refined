@@ -4,6 +4,7 @@ import random
 import re
 import json
 from typing import Dict, List
+from iterfzf import iterfzf
 
 import requests
 import yaml
@@ -93,6 +94,7 @@ class Scraper:
             self.__get_cached_courses()
         else:
             self.__cache_courses()
+        self.selected_course_names = iterfzf(self.course_names)
 
     def __cache_courses(self):
         self.course_names = self.__get_course_names()
@@ -118,7 +120,10 @@ class Scraper:
 
     def __scrap_files(self):
         for course in self.courses:
-            course.get_course_files(os.path.join(DOWNLOADS_DIR, course.__str__()))
+            if course.course_name in self.selected_course_names:
+                selected_files = iterfzf([file.name for file in course.files])
+                course.files = [file for file in course.files if file.name in selected_files]
+                course.get_course_files(os.path.join(DOWNLOADS_DIR, course.__str__()))
 
     def _populate_courses_data(self):
         # populate courses with names
