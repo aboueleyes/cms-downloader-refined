@@ -81,7 +81,8 @@ class CMSFile:
 
     def export_slide(self, slide, slide_num, pdf_writer):
         # Add the implementation of the function here
-        pass
+        # Implement the export of the slide to the pdf_writer
+        pdf_writer.add_page(slide.export_to_pdf())
 
     def __init__(self, soup: BeautifulSoup, course_path) -> None:
         from scraper import HOST
