@@ -19,6 +19,7 @@ YML_CONFIG = yaml.safe_load(open(YML_FILE))
 
 HOST = YML_CONFIG["host"]
 DOWNLOADS_DIR = YML_CONFIG["downloads_dir"]
+ALLOWED_EXTENSIONS = YML_CONFIG["allowed_extensions"]
 
 TQDM_COLORS = [
     "#ff0000",
@@ -176,6 +177,10 @@ class Scraper:
             )
 
     def __download_file(self, file: CMSFile) -> None:
+        file_extension = os.path.splitext(file.url)[1]
+        if file_extension not in ALLOWED_EXTENSIONS:
+            return
+    
         response = self.session.get(file.url, **self.get_args, stream=True, allow_redirects=True)
         if response.status_code != 200:
             raise CMSAuthenticationError("Authentication failed.")
