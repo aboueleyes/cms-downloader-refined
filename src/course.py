@@ -73,11 +73,15 @@ class CMSFile:
         pdf_writer = PdfFileWriter()
 
         for slide_num, slide in enumerate(prs.slides):
-            export_slide(slide, slide_num, pdf_writer)
+            self.export_slide(slide, slide_num, pdf_writer)
 
         pdf_path = pptx_path.replace('.pptx', '.pdf')
         with open(pdf_path, 'wb') as fh:
             pdf_writer.write(fh)
+
+    def export_slide(self, slide, slide_num, pdf_writer):
+        # Add the implementation of the function here
+        pass
 
     def __init__(self, soup: BeautifulSoup, course_path) -> None:
         from scraper import HOST
