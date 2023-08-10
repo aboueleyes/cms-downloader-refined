@@ -199,12 +199,15 @@ class Scraper:
                     t.update(len(chunk))
 
         if file.extension == 'pptx':
-            try:
-                presentation = Presentation(file.path)
-                pdf_path = file.path.replace('.pptx', '.pdf')
-                pdfkit.from_file(file.path, pdf_path)
-            except Exception as e:
-                print(f"Error converting {file.path} to PDF: {e}")
+            if os.path.exists(file.path):
+                try:
+                    presentation = Presentation(file.path)
+                    pdf_path = file.path.replace('.pptx', '.pdf')
+                    pdfkit.from_file(file.path, pdf_path)
+                except Exception as e:
+                    print(f"Error converting {file.path} to PDF: {e}")
+            else:
+                print(f"File {file.path} does not exist.")
 
     @property
     def files(self) -> List[CMSFile]:
