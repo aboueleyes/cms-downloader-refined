@@ -6,7 +6,11 @@ This is a refined implementation of the [old cms downloader](https://github.com/
 
 1. Clone the repository: `git clone https://github.com/aboueleyes/cms-downloader-refined.git`
 2. Install the required dependencies: `pip install -r requirements.txt`
-3. Populate config and env: <add instructions here>
+3. Populate .env with your credentials
+```bash
+- echo "username" > .env
+- echo "password" >> .env
+```
 
 ## Usage
 
