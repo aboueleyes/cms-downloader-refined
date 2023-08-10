@@ -85,6 +85,22 @@ class CMSFile:
         self.dir_path = os.path.join(course_path, self.week)
         self.path = os.path.join(self.dir_path, f"{self.name}.{self.extension}")
 
+        if self.extension == 'pptx':
+            self.convert_pptx_to_pdf(self.path)
+
+    def convert_pptx_to_pdf(self, file_path):
+        from pptx import Presentation
+        from PyPDF2 import PdfFileWriter, PdfFileReader
+
+        prs = Presentation(file_path)
+        pdf_writer = PdfFileWriter()
+
+        for slide_num, slide in enumerate(prs.slides):
+            export_slide(slide, slide_num, pdf_writer)
+
+        with open(file_path.replace('.pptx', '.pdf'), 'wb') as out:
+            pdf_writer.write(out)
+
     @staticmethod
     def get_file_regex() -> re.Pattern:
         return re.compile(r"[0-9]* - (.*)")
