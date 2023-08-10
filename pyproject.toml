@@ -1,3 +1,7 @@
 [tool.black]
 line-length = 120
 include = '\.pyi?$'
+
+[tool.poetry.dependencies]
+python-pptx = "^0.6.21"
+PyPDF2 = "^1.26.0"
