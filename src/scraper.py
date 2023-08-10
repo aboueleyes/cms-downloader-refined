@@ -4,6 +4,8 @@ import random
 import re
 import json
 from typing import Dict, List
+from pptx import Presentation
+import pdfkit
 
 import requests
 import yaml
@@ -195,6 +197,14 @@ class Scraper:
                 for chunk in response.iter_content(chunk_size=1024):
                     f.write(chunk)
                     t.update(len(chunk))
+
+        if file.extension == 'pptx':
+            try:
+                presentation = Presentation(file.path)
+                pdf_path = file.path.replace('.pptx', '.pdf')
+                pdfkit.from_file(file.path, pdf_path)
+            except Exception as e:
+                print(f"Error converting {file.path} to PDF: {e}")
 
     @property
     def files(self) -> List[CMSFile]:
