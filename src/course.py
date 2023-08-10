@@ -11,11 +11,11 @@ class Course:
     Class for storing course information.
     """
 
-    def __init__(self, course_url: str) -> None:
+    def __init__(self, course_url: str, convert_pptx_to_pdf: bool) -> None:
         self.course_url = course_url
         self.id = self.course_url.split("id")[1][1:].split("&")[0]
         self.files = []
-        self.convert_pptx_to_pdf = True
+        self.convert_pptx_to_pdf = convert_pptx_to_pdf
 
     def __str__(self) -> str:
         return f"[{self.course_code}] {self.course_name}"
@@ -66,7 +66,7 @@ class Course:
 class CMSFile:
     """a cms file object"""
 
-    def __init__(self, soup: BeautifulSoup, course_path) -> None:
+    def __init__(self, soup: BeautifulSoup, course_path, convert_pptx_to_pdf: bool) -> None:
         from scraper import HOST
 
         self.soup = soup
@@ -83,7 +83,7 @@ class CMSFile:
         self.name = sanitize(self.name)
 
         self.extension = self.url.rsplit(".", 1)[1]
-        if self.extension == "pptx" and self.convert_pptx_to_pdf:
+        if self.extension == "pptx" and convert_pptx_to_pdf:
             try:
                 from pptx import Presentation
                 from pptx.util import Inches
