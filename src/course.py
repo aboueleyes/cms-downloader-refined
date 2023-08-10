@@ -88,6 +88,10 @@ class CMSFile:
         if self.extension == 'pptx':
             self.convert_pptx_to_pdf(self.path)
 
+    @staticmethod
+    def export_slide(slide, slide_num, pdf_writer):
+        # Code to export slide goes here
+
     def convert_pptx_to_pdf(self, file_path):
         from pptx import Presentation
         from PyPDF2 import PdfFileWriter, PdfFileReader
@@ -96,7 +100,7 @@ class CMSFile:
         pdf_writer = PdfFileWriter()
 
         for slide_num, slide in enumerate(prs.slides):
-            export_slide(slide, slide_num, pdf_writer)
+            self.export_slide(slide, slide_num, pdf_writer)
 
         with open(file_path.replace('.pptx', '.pdf'), 'wb') as out:
             pdf_writer.write(out)
