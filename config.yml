@@ -1,3 +1,13 @@
 host: "https://cms.guc.edu.eg"
 
 downloads_dir: "Downloads"
+
+allowed_extensions:
+  - "pdf"
+  - "pptx"
+  - "docx"
+  - "xlsx"
+  - "zip"
+  - "rar"
+  - "7z"
+  - "ppt"

@@ -1,8 +1,11 @@
+from loguru import logger
+
 import os
 import re
 from datetime import datetime
 
 from bs4 import BeautifulSoup
+from config import ALLOWED_EXTENSIONS
 from sanitize_filename import sanitize
 
 
@@ -57,7 +60,7 @@ class Course:
 
         for item in files_body:
             # check if the card is not a course content, useful for `Filter weeks` card
-            if item.find('strong') is None:
+            if item.find("strong") is None:
                 continue
             self.files.append((CMSFile(soup=item, course_path=course_path)))
 
@@ -80,8 +83,13 @@ class CMSFile:
 
         self.name = re.sub(self.get_file_regex(), "\\1", self.soup.find("strong").text).strip()
         self.name = sanitize(self.name)
-
         self.extension = self.url.rsplit(".", 1)[1]
+        if self.extension not in ALLOWED_EXTENSIONS:
+            logger.warning(
+                f"File extension {self.extension} is not allowed. File: {self.name} skipped."
+                "if you want to download this file, add the extension to the config.yml file."
+                "Course: {self.course_name}"
+            )
         self.dir_path = os.path.join(course_path, self.week)
         self.path = os.path.join(self.dir_path, f"{self.name}.{self.extension}")
 
