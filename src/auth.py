@@ -22,7 +22,6 @@ class Credentials:
 
     def __init__(self):
         self.filename = ".env"
-        print("Reading credentials ...")
         if os.path.exists(self.filename):
             self.__get_credentials_from_env()
         else:
