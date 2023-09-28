@@ -2,6 +2,8 @@ import os
 from typing import Optional
 from getpass import getpass
 
+from loguru import logger
+
 
 class CMSAuthenticationError(Exception):
     """The CMSAuthenticationError class is raised when the user's credentials
@@ -59,7 +61,7 @@ class Credentials:
             Scraper(credentials=self).authenticate()
             return
         except CMSAuthenticationError:
-            print("Authentication failed. Please try again.")
+            logger.error("Authentication failed. Please try again.")
             self.__get_credentials_from_input()
 
     def remove_credentials(self) -> None:
@@ -67,4 +69,4 @@ class Credentials:
         Remove credentials file.
         """
         os.remove(self.filename)
-        print("Credentials removed.")
+        logger.info("Credentials removed.")
