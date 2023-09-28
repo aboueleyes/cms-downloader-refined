@@ -131,3 +131,6 @@ dmypy.json
 *Downloads*
 .courses.json
 tags
+.vimrc
+.vscode/
+.idea/
