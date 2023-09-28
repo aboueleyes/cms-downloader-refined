@@ -3,7 +3,6 @@ import os
 import random
 import re
 import json
-from typing import Dict, List
 
 import requests
 from bs4 import BeautifulSoup
@@ -27,7 +26,7 @@ class Scraper:
         self.session.auth = HttpNtlmAuth(credentials.username, credentials.password)
         self.session.headers.update({"User-Agent": "Mozilla/5.0"})
         self.html_parser: str = "html.parser"
-        self.get_args: Dict[str, object] = {
+        self.get_args: dict[str, object] = {
             "auth": self.session.auth,
             "verify": False,
         }
@@ -132,7 +131,7 @@ class Scraper:
         if response.status_code != 200:
             raise CMSAuthenticationError("Authentication failed.")
 
-    def __get_available_courses(self) -> List[Course]:
+    def __get_available_courses(self) -> list[Course]:
         """
         Get list of courses.
         """
@@ -142,7 +141,7 @@ class Scraper:
         ]
         return [Course(link) for link in self.courses_links]
 
-    def __get_course_names(self) -> List[str]:
+    def __get_course_names(self) -> list[str]:
         "get course names"
         courses_table = list(
             self.home_soup.find(
@@ -193,7 +192,7 @@ class Scraper:
                     t.update(len(chunk))
 
     @property
-    def files(self) -> List[CMSFile]:
+    def files(self) -> list[CMSFile]:
         """
         Get all files.
         """

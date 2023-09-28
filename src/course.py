@@ -5,7 +5,7 @@ import re
 from datetime import datetime
 
 from bs4 import BeautifulSoup
-from config import ALLOWED_EXTENSIONS
+from config import ALLOWED_EXTENSIONS, HOST
 from sanitize_filename import sanitize
 
 
@@ -62,16 +62,15 @@ class Course:
             # check if the card is not a course content, useful for `Filter weeks` card
             if item.find("strong") is None:
                 continue
-            self.files.append((CMSFile(soup=item, course_path=course_path)))
+            self.files.append((CMSFile(soup=item, course_path=course_path, course_name=self.course_name)))
 
 
 class CMSFile:
     """a cms file object"""
 
-    def __init__(self, soup: BeautifulSoup, course_path) -> None:
-        from scraper import HOST
-
+    def __init__(self, soup: BeautifulSoup, course_path: str, course_name: str) -> None:
         self.soup = soup
+        self.course_name = course_name
 
         self.url = HOST + self.soup.find("a")["href"]
 
@@ -86,9 +85,9 @@ class CMSFile:
         self.extension = self.url.rsplit(".", 1)[1]
         if self.extension not in ALLOWED_EXTENSIONS:
             logger.warning(
-                f"File extension {self.extension} is not allowed. File: {self.name} skipped."
-                "if you want to download this file, add the extension to the config.yml file."
-                "Course: {self.course_name}"
+                f"File extension {self.extension} is not allowed. File: {self.name} skipped.\n"
+                "if you want to download this file, add the extension to the config.yml file.\n"
+                f"Course: {self.course_name}"
             )
         self.dir_path = os.path.join(course_path, self.week)
         self.path = os.path.join(self.dir_path, f"{self.name}.{self.extension}")
