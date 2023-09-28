@@ -1,4 +1,4 @@
-from scraper import *
+from scraper import Scraper, Credentials
 import urllib3
 
 

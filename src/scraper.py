@@ -6,30 +6,14 @@ import json
 from typing import Dict, List
 
 import requests
-import yaml
 from bs4 import BeautifulSoup
+from config import ALLOWED_EXTENSIONS, DOWNLOADS_DIR, HOST, TQDM_COLORS
 from course import CMSFile, Course
 from requests_ntlm import HttpNtlmAuth
+from loguru import logger
 from tqdm import tqdm
 
 from auth import Credentials, CMSAuthenticationError
-
-YML_FILE = "config.yml"
-YML_CONFIG = yaml.safe_load(open(YML_FILE))
-
-HOST = YML_CONFIG["host"]
-DOWNLOADS_DIR = YML_CONFIG["downloads_dir"]
-
-TQDM_COLORS = [
-    "#ff0000",
-    "#00ff00",
-    "#0000ff",
-    "#ffff00",
-    "#00ffff",
-    "#ff00ff",
-    "#ffffff",
-    "#000000",
-]
 
 
 class Scraper:
@@ -61,23 +45,33 @@ class Scraper:
         """
 
         # authenticate
+        logger.info("Authenticating...")
         try:
             self.authenticate()
         except CMSAuthenticationError:
             self.credentials.remove_credentials()
             return self.run()
 
+        logger.info("Authentication successful.")
+
+        logger.info("Scraping courses...")
         self.__scrap_courses()
 
+        logger.info("Scraping files...")
         self.__scrap_files()
 
         self.__create_courses_dir()
 
+        logger.info("Downloading files...")
         self.__download_all_files()
 
     def __download_all_files(self):
         # download files in parallel using threads
         threads = []
+        if not self.files:
+            logger.warning("No new files found.")
+            return
+        logger.info(f"New files found. Downloading {self.files} ...")
         for file in self.files:
             thread = threading.Thread(target=self.__download_file, args=(file,))
             thread.start()
@@ -103,6 +97,7 @@ class Scraper:
             json.dump(data, f, indent=4)
 
     def __get_cached_courses(self):
+        logger.info("Loading cached courses...")
         with open(".courses.json", "r") as f:
             courses_data = json.load(f)
             courses = []
@@ -114,6 +109,7 @@ class Scraper:
             self.courses = courses
             self.course_names = list(courses_data.keys())
             self.courses_links = list(courses_data.values())
+            logger.info(f"Cached courses loaded. courses are: {self.course_names}")
             self._populate_courses_data()
 
     def __scrap_files(self):
@@ -201,4 +197,9 @@ class Scraper:
         """
         Get all files.
         """
-        return [file for course in self.courses for file in course.files if not os.path.exists(file.path)]
+        return [
+            file
+            for course in self.courses
+            for file in course.files
+            if not os.path.exists(file.path) and file.extension in ALLOWED_EXTENSIONS
+        ]
