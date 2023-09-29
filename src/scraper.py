@@ -127,7 +127,9 @@ class Scraper:
         """
         Authenticate with GUC CMS.
         """
-        response = self.session.get(HOST, **self.get_args)
+        response = self.session.get(
+            HOST, **self.get_args, headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+        )
         if response.status_code != 200:
             raise CMSAuthenticationError("Authentication failed.")
 
