@@ -6,6 +6,8 @@ import json
 
 import requests
 from bs4 import BeautifulSoup
+from requests.adapters import HTTPAdapter, Retry
+
 from config import ALLOWED_EXTENSIONS, DOWNLOADS_DIR, HOST, TQDM_COLORS
 from course import CMSFile, Course
 from requests_ntlm import HttpNtlmAuth
@@ -164,7 +166,8 @@ class Scraper:
         """
         Get courses page.
         """
-        for course in self.courses:
+        logger.info("Getting courses pages...")
+        for course in tqdm(self.courses, unit="course", dynamic_ncols=True, colour=random.choice(TQDM_COLORS)):
             course.set_course_soup(
                 BeautifulSoup(
                     self.session.get(course.course_url, **self.get_args).text,
@@ -173,9 +176,13 @@ class Scraper:
             )
 
     def __download_file(self, file: CMSFile) -> None:
+        retries = Retry(total=5, backoff_factor=0.1)
+
+        self.session.mount("http://", HTTPAdapter(max_retries=retries))
         response = self.session.get(file.url, **self.get_args, stream=True, allow_redirects=True)
         if response.status_code != 200:
-            raise CMSAuthenticationError("Authentication failed.")
+            logger.error(response.status_code)
+            return
 
         total_size = int(response.headers.get("Content-Length"))
 
